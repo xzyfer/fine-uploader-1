@@ -776,6 +776,20 @@ module.exports = (grunt) ->
                     headers:
                         "Access-Control-Allow-Origin": "*"
 
+        karma:
+            custom:
+                basePath: ""
+                preprocessors:
+                    '**/*.coffee': 'coffee'
+                logColors: true
+                frameworks: ["mocha"]
+                reporters: ["dots"]
+                captureTimeout: 60000
+                colors: true
+                singleRun: true
+                browsers: ['PhantomJS']
+
+
     # Dependencies
     # ==========
     for name of pkg.devDependencies when name.substring(0, 6) is 'grunt-'
@@ -889,13 +903,35 @@ module.exports = (grunt) ->
     grunt.registerTask 'package', 'Build a zipped distribution-worthy version', ['build_stripped', 'copy:dist', 'shell:version_dist_templates', 'compress:jquery', 'compress:jqueryS3', 'compress:jqueryAzure', 'compress:core', 'compress:coreS3', 'compress:coreAzure' ]
 
     grunt.registerTask 'custom', 'Build a custom version', (modules) ->
+        taskList = ['uglify:custom', 'cssmin:custom', 'strip_code:custom', 'shell:version_custom_templates', 'usebanner:customhead', 'usebanner:customfoot', 'compress:custom', 'build_details']
         util = require './lib/grunt/utils'
         dest = customBuildDest
         if (modules?)
             util.build.call util, dest, modules.split(',')
         else
             util.build.call util, dest, []
-        grunt.task.run(['uglify:custom', 'cssmin:custom', 'strip_code:custom', 'shell:version_custom_templates', 'usebanner:customhead', 'usebanner:customfoot', 'compress:custom', 'build_details'])
+
+        testModules = grunt.option('test')
+        if (testModules?)
+            taskList.push('server');
+            taskList.push('karma:custom')
+            console.log(testModules)
+            custom_build_karma_files = fineUploaderModules.mergeModules('karmaModules')
+            custom_build_karma_files.push("#{customBuildDest}/src/custom.fineuploader-#{pkg.version}.js")
+            custom_build_karma_files.push('./test/static/local/helpme.js')
+            custom_build_karma_files = Array.prototype.concat(custom_build_karma_files,
+                fineUploaderModules.mergeModules('fuIframeXssResponse',
+                                                 'testHelperModules'))
+            custom_build_karma_files = Array.prototype.concat(custom_build_karma_files,
+                fineUploaderModules.mergeModules.apply(@, testModules.split(',')))
+            grunt.config.set 'karma.options.files', custom_build_karma_files
+            console.log(grunt.config.get('karma.options.files'))
+        grunt.task.run(taskList)
+
+    grunt.registerTask 'customtest', 'Test custom builds', (modules) ->
+        grunt.task.run('copy:test')
+        grunt.task.run('custom', modules)
+
 
     grunt.registerTask 'default', 'Default task: clean, bower, lint, build, & test', ['package']
 

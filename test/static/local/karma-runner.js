@@ -54,8 +54,12 @@ var $fixture;
     before(function() {
         // "Turn off" the before unload handler since this may cause the tests to stall when run in a browser
         qq.FineUploaderBasic.prototype._preventLeaveInProgress = function() {};
-        qq.s3.FineUploaderBasic.prototype._preventLeaveInProgress = function() {};
-        qq.azure.FineUploaderBasic.prototype._preventLeaveInProgress = function() {};
+        if (qq.s3) {
+            qq.s3.FineUploaderBasic.prototype._preventLeaveInProgress = function() {};
+        }
+        if (qq.azure) {
+            qq.azure.FineUploaderBasic.prototype._preventLeaveInProgress = function() {};
+        }
         qq.FineUploaderBasic.prototype._wrapCallbacks = function() {};
     });
 
